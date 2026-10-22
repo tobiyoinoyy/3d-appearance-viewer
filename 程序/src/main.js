@@ -7,6 +7,8 @@ import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 
 import './styles.css';
 import { initWorkspaceUI } from './workspace-ui.js';
+import { initSkuPicker } from './sku-picker.js';
+let skuPicker;
 import { createImmersiveDemo } from './immersive-demo.js';
 import { createDetailWindow, isDetailImage } from './detail-window.js';
 import { createLaptopLidController } from './laptop-lid.js';
@@ -1084,6 +1086,7 @@ function renderSkuPanel() {
   dom.skuSelect.replaceChildren(...options);
   dom.skuSelect.disabled = groups.length === 0 || state.batchBusy;
   dom.skuSelect.value = state.pendingSkuId || state.activeSkuId || groups[0]?.id || '';
+  skuPicker?.render(groups, dom.skuSelect.value, state.batchBusy);
   dom.skuPanel.hidden = groups.length === 0;
   dom.skuSwitchStatus.hidden = !state.pendingSkuId;
   dom.batchHint.hidden = groups.length > 0;
@@ -1863,6 +1866,7 @@ function wireEvents() {
 
 async function init() {
   initWorkspaceUI();
+  skuPicker = initSkuPicker(id => void activateSkuSet(id));
   initRenderer();
   immersiveDemo = createImmersiveDemo({ state, viewport: dom.viewport, skuSelect: dom.skuSelect,
     onSkuChange: (id) => void activateSkuSet(id) });

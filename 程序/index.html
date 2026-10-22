@@ -92,7 +92,12 @@
             <div class="batch-actions"><button id="batch-folder-button" class="button button-primary button-batch" type="button" disabled><svg class="icon"><use href="#i-folder"/></svg><span class="button-label">导入贴图文件夹</span></button><input id="batch-folder-input" class="visually-hidden" type="file" aria-label="选择贴图文件夹或图片" accept="image/png,image/jpeg,image/webp,image/avif" webkitdirectory="" directory="" multiple/><span id="batch-hint" class="batch-hint">选择当前机型对应的图片文件夹</span></div>
             <div class="material-actions"><button id="reset-materials-button" class="text-button" type="button" disabled><svg class="icon icon-small"><use href="#i-reset"/></svg>恢复模型贴图</button></div>
             <div id="sku-panel" class="sku-panel" hidden>
-              <label class="sku-select-row" for="sku-select"><span>选择 SKU</span><select id="sku-select" aria-label="选择图片 SKU" disabled><option value="">模型原始贴图</option></select></label>
+              <div class="sku-picker-heading"><span id="sku-picker-label">选择 SKU</span></div>
+              <div id="sku-picker" class="sku-picker">
+                <div id="sku-buttons" class="sku-buttons" role="group" aria-labelledby="sku-picker-label"></div>
+                <div id="sku-resize-handle" class="sku-resize-handle" role="separator" tabindex="0" aria-label="调整 SKU 区域高度" aria-orientation="horizontal" aria-controls="sku-buttons" title="上下拖动调整高度，双击恢复默认"><span></span></div>
+              </div>
+              <select id="sku-select" hidden aria-hidden="true" tabindex="-1" disabled><option value="">模型原始贴图</option></select>
               <p id="sku-switch-status" class="sku-switch-status" role="status" hidden>正在切换…</p>
             </div>
             <div class="session-note"><span class="note-dot"></span><p>图片仅用于本次预览<br><span>切换模型或刷新后恢复原始贴图。</span></p></div>
