@@ -85,23 +85,13 @@ const dom = {
   sceneLabel: document.querySelector('#scene-label'),
   sceneTree: document.querySelector('#scene-tree'),
   expandTreeButton: document.querySelector('#expand-tree-button'),
-  materialCountLabel: document.querySelector('#material-count-label'),
   resetMaterialsButton: document.querySelector('#reset-materials-button'),
   batchFolderButton: document.querySelector('#batch-folder-button'),
   batchFolderInput: document.querySelector('#batch-folder-input'),
   batchHint: document.querySelector('#batch-hint'),
-  batchSummary: document.querySelector('#batch-summary'),
-  batchSummaryTitle: document.querySelector('#batch-summary-title'),
-  batchSummaryCounts: document.querySelector('#batch-summary-counts'),
-  batchProgress: document.querySelector('#batch-progress'),
-  batchProgressBar: document.querySelector('#batch-progress span'),
-  batchResults: document.querySelector('#batch-results'),
   skuPanel: document.querySelector('#sku-panel'),
   skuSelect: document.querySelector('#sku-select'),
-  skuPanelTitle: document.querySelector('#sku-panel-title'),
-  skuCacheLabel: document.querySelector('#sku-cache-label'),
-  skuList: document.querySelector('#sku-list'),
-  skuHint: document.querySelector('#sku-hint'),
+  skuSwitchStatus: document.querySelector('#sku-switch-status'),
   resetViewButton: document.querySelector('#reset-view-button'),
   frameViewButton: document.querySelector('#frame-view-button'),
   gridButton: document.querySelector('#grid-button'),
@@ -172,7 +162,7 @@ const state = {
   fpsFrameCount: 0,
   batchToken: 0,
   batchBusy: false,
-  batchResults: [],
+  pendingSkuId: null,
   skuSets: [],
   skuSetById: new Map(),
   activeSkuId: null,
@@ -251,16 +241,6 @@ function batchFilePath(file) {
   return String(file?.webkitRelativePath || file?.name || '未命名图片');
 }
 
-function batchFolderName(files) {
-  const roots = new Set();
-  files.forEach((file) => {
-    const path = batchFilePath(file);
-    const segments = path.split(/[\\/]/).filter(Boolean);
-    if (segments.length > 1) roots.add(segments[0]);
-  });
-  return roots.size === 1 ? [...roots][0] : '';
-}
-
 function batchPathSegments(file) {
   return batchFilePath(file).split(/[\\/]/).filter(Boolean);
 }
@@ -336,7 +316,7 @@ function setBatchBusy(busy) {
   dom.batchFolderButton.classList.toggle('is-busy', state.batchBusy);
   dom.batchFolderButton.setAttribute('aria-busy', String(state.batchBusy));
   const label = dom.batchFolderButton.querySelector('.button-label');
-  if (label) label.textContent = state.batchBusy ? '正在处理文件夹…' : '导入贴图文件夹';
+  if (label) label.textContent = state.batchBusy ? (state.pendingSkuId ? '正在切换…' : '正在导入…') : '导入贴图文件夹';
 }
 
 function materialDisplayName(material, index) {
@@ -736,8 +716,6 @@ function refreshMaterialCard(record) {
 }
 
 function renderMaterialPanel() {
-  const count = state.materialRecords.size;
-  dom.materialCountLabel.textContent = `${count} 个槽位`;
   updateTextureSourceUI();
   setBatchBusy(state.batchBusy);
 }
@@ -885,61 +863,11 @@ async function replaceTexture(record, slotKey, file, card) {
   }
 }
 
-function clearBatchSummary() {
+function clearTextureImport() {
   state.batchToken += 1;
-  state.batchResults = [];
+  state.pendingSkuId = null;
   setBatchBusy(false);
-  dom.batchSummary.hidden = true;
-  dom.batchProgress.hidden = true;
-  setBatchProgress(0);
-  dom.batchResults.replaceChildren();
   setBatchPickerHint();
-}
-
-function setBatchProgress(percent) {
-  const value = Math.max(0, Math.min(100, Math.round(Number(percent) || 0)));
-  if (dom.batchProgressBar) dom.batchProgressBar.style.width = `${value}%`;
-  if (dom.batchProgress) dom.batchProgress.setAttribute('aria-valuenow', String(value));
-}
-
-function batchResultLabel(result) {
-  if (result.status === 'matched') return '已匹配';
-  if (result.status === 'pending') return '待处理';
-  if (result.status === 'duplicate') return '重复';
-  if (result.status === 'ambiguous') return '歧义';
-  return '未匹配';
-}
-
-function renderBatchResults(results, running = false) {
-  const matched = results.filter((result) => result.status === 'matched').length;
-  const duplicate = results.filter((result) => result.status === 'duplicate').length;
-  const pending = results.filter((result) => result.status === 'pending').length;
-  const unresolved = results.filter((result) => ['unmatched', 'ambiguous'].includes(result.status)).length;
-  dom.batchSummary.hidden = results.length === 0;
-  dom.batchSummary.open = running || unresolved > 0 || duplicate > 0;
-  dom.batchSummaryTitle.textContent = running ? '正在处理文件夹…' : '批量替换结果';
-  dom.batchSummaryCounts.textContent = running
-    ? `${matched} 已替换 · ${pending} 待处理 · ${unresolved} 未处理 · ${duplicate} 重复`
-    : `${matched} 已替换 · ${pending} 待载入 · ${unresolved} 未处理 · ${duplicate} 重复`;
-  dom.batchResults.replaceChildren();
-  results.forEach((result) => {
-    const row = document.createElement('div');
-    row.className = `batch-result is-${result.status}`;
-    const status = document.createElement('span');
-    status.className = 'batch-result-status';
-    status.textContent = batchResultLabel(result);
-    const name = document.createElement('span');
-    name.className = 'batch-result-name';
-    name.textContent = batchFilePath(result.file);
-    name.title = batchFilePath(result.file);
-    const detail = document.createElement('span');
-    detail.className = 'batch-result-detail';
-    detail.textContent = result.slot && result.slot !== 'ambiguous'
-      ? `${TEXTURE_SLOT_LABELS[result.slot] || result.slot} · ${result.detail}`
-      : result.detail;
-    row.append(status, name, detail);
-    dom.batchResults.append(row);
-  });
 }
 
 function getBatchTargetRecords(face) {
@@ -1150,56 +1078,16 @@ function skuCacheEntryFor(id) {
 }
 
 function renderSkuPanel() {
-  if (!dom.skuPanel || !dom.skuList) return;
   const groups = state.skuSets || [];
   const options = groups.map((group) => new Option(group.label, group.id));
   if (!options.length) options.push(new Option('模型原始贴图', ''));
   dom.skuSelect.replaceChildren(...options);
-  dom.skuSelect.disabled = groups.length === 0;
-  dom.skuSelect.value = state.activeSkuId || groups[0]?.id || '';
-  updateTextureSourceUI();
+  dom.skuSelect.disabled = groups.length === 0 || state.batchBusy;
+  dom.skuSelect.value = state.pendingSkuId || state.activeSkuId || groups[0]?.id || '';
   dom.skuPanel.hidden = groups.length === 0;
-  if (dom.skuPanelTitle) dom.skuPanelTitle.textContent = groups.length ? `贴图 SKU（${groups.length}）` : '贴图 SKU';
-  if (dom.skuCacheLabel) {
-    const loaded = [...state.skuCache.values()].filter((entry) => entry.loaded).length;
-    dom.skuCacheLabel.textContent = loaded
-      ? `缓存 ${loaded}/${groups.length} · ${formatFileSize(state.skuCacheBytes)}`
-      : '首次点击后载入';
-  }
-  dom.skuList.replaceChildren();
-  groups.forEach((group) => {
-    const entry = skuCacheEntryFor(group.id);
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = `sku-card${state.activeSkuId === group.id ? ' is-active' : ''}`;
-    button.dataset.skuId = group.id;
-    button.setAttribute('aria-pressed', String(state.activeSkuId === group.id));
-    button.title = `切换到 ${group.label}`;
-
-    const head = document.createElement('span');
-    head.className = 'sku-card-head';
-    const label = document.createElement('strong');
-    label.textContent = group.label;
-    const status = document.createElement('span');
-    status.className = 'sku-card-status';
-    status.textContent = state.activeSkuId === group.id
-      ? '当前'
-      : entry?.loading
-        ? '载入中'
-        : entry?.loaded
-          ? '已缓存'
-          : '待载入';
-    head.append(label, status);
-
-    const meta = document.createElement('span');
-    meta.className = 'sku-card-meta';
-    const source = group.folder && group.folder !== group.label ? `文件夹：${group.folder}` : '';
-    const matched = group.validCount || 0;
-    meta.textContent = `${group.files.length} 张图片 · ${matched} 个贴图槽${source ? ` · ${source}` : ''}`;
-    button.append(head, meta);
-    button.addEventListener('click', () => { void activateSkuSet(group.id); });
-    dom.skuList.append(button);
-  });
+  dom.skuSwitchStatus.hidden = !state.pendingSkuId;
+  dom.batchHint.hidden = groups.length > 0;
+  updateTextureSourceUI();
 }
 
 function restoreRecordTexture(record, slotKey) {
@@ -1360,15 +1248,13 @@ async function activateSkuSet(id) {
     }
   }
   const token = ++state.batchToken;
+  state.pendingSkuId = id;
   setBatchBusy(true);
-  dom.batchProgress.hidden = false;
-  setBatchProgress(0);
-  renderBatchResults(state.batchResults, true);
+
   renderSkuPanel();
   try {
-    const entry = await ensureSkuTextures(group, token, (completed, total) => {
-      if (token === state.batchToken) setBatchProgress((completed / Math.max(total, 1)) * 100);
-    });
+    if (!group.slotItems.size && !group.detailFiles.length) throw new Error(`${group.label} 未找到可用贴图，请检查图片命名。`);
+    const entry = await ensureSkuTextures(group, token);
     if (token !== state.batchToken) return;
     applySkuTextureSet(group, entry);
     state.activeSkuId = id;
@@ -1378,9 +1264,7 @@ async function activateSkuSet(id) {
     setFooterStatus(`${state.sourceLabel} · ${group.label}`);
     touchSkuCache(entry);
     evictSkuCacheIfNeeded();
-    // Refresh aggregate result rows after applying the selected SKU.
-    state.batchResults = state.skuSets.flatMap((sku) => sku.results || []);
-    renderBatchResults(state.batchResults, false);
+
     renderSkuPanel();
   } catch (error) {
     if (error?.code !== 'SKU_CANCELLED') {
@@ -1391,12 +1275,11 @@ async function activateSkuSet(id) {
           result.detail = `图片载入失败：${error?.message || '未知错误'}`;
         }
       });
-      state.batchResults = state.skuSets.flatMap((sku) => sku.results || []);
-      renderBatchResults(state.batchResults, false);
+
     }
   } finally {
     if (token === state.batchToken) {
-      dom.batchProgress.hidden = true;
+      state.pendingSkuId = null;
       setBatchBusy(false);
       renderSkuPanel();
     }
@@ -1410,11 +1293,12 @@ function clearSkuState({ restore = true } = {}) {
       record.activeSkuSlots?.clear();
     });
   }
+  state.pendingSkuId = null;
   clearSkuCaches();
   detailWindow.setGroup(state.modelDetailGroup);
   state.skuSets = [];
   state.skuSetById.clear();
-  state.batchResults = [];
+
   renderSkuPanel();
 }
 
@@ -1428,12 +1312,7 @@ async function handleBatchFiles(fileList) {
   clearSkuState({ restore: true });
   if (!files.length) {
     setBatchBusy(false);
-    dom.batchSummary.hidden = false;
-    dom.batchSummaryTitle.textContent = '没有可处理的图片';
-    dom.batchSummaryCounts.textContent = '请选择包含 PNG / JPG / WebP / AVIF 的文件夹';
-    dom.batchResults.replaceChildren();
-    dom.batchProgress.hidden = true;
-    setBatchProgress(0);
+    showError('没有找到可导入的图片，请选择包含图片的文件夹。');
     setBatchPickerHint();
     return;
   }
@@ -1444,16 +1323,7 @@ async function handleBatchFiles(fileList) {
   groups.forEach((group) => classifySkuGroup(group, targetsByFace));
   state.skuSets = groups;
   state.skuSetById = new Map(groups.map((group) => [group.id, group]));
-  state.batchResults = groups.flatMap((group) => group.results);
 
-  const folderName = batchFolderName(files);
-  const groupSummary = groups.length > 1 ? `，识别为 ${groups.length} 个 SKU` : '';
-  dom.batchHint.textContent = folderName
-    ? `已扫描「${folderName}」中的 ${files.length} 张图片${groupSummary}；首次点击 SKU 后载入并缓存`
-    : `已扫描 ${files.length} 张图片${groupSummary}；首次点击 SKU 后载入并缓存`;
-  dom.batchProgress.hidden = true;
-  setBatchProgress(0);
-  renderBatchResults(state.batchResults, false);
   renderSkuPanel();
 
   // Preserve the original single-folder behavior: activate the first (and
@@ -1462,7 +1332,7 @@ async function handleBatchFiles(fileList) {
 }
 
 function resetMaterialTextures() {
-  clearBatchSummary();
+  clearTextureImport();
   state.materialRecords.forEach((record) => {
     TEXTURE_SLOTS.forEach(({ key }) => {
       const current = record.material[key];
@@ -1476,11 +1346,12 @@ function resetMaterialTextures() {
     if (record.ui) record.ui.drop.textContent = '也可将图片拖到此处替换所选槽位';
     refreshMaterialCard(record);
   });
+  state.pendingSkuId = null;
   clearSkuCaches();
   detailWindow.setGroup(state.modelDetailGroup);
   state.skuSets = [];
   state.skuSetById.clear();
-  state.batchResults = [];
+
   renderSkuPanel();
   setLoadState('模型自带贴图已就绪', 'ready');
   setFooterStatus(`${state.sourceLabel} · 已恢复模型自带贴图`);
@@ -1764,7 +1635,7 @@ function clearCurrentModel() {
   // Invalidate an in-flight folder scan before its asynchronous texture loads
   // can attach images to the next model.
   state.batchToken += 1;
-  clearBatchSummary();
+  clearTextureImport();
   clearSkuState({ restore: true });
   if (state.modelRoot && state.scene) state.scene.remove(state.modelRoot);
   const textures = new Set();
