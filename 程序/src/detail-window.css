@@ -1,0 +1,23 @@
+.detail-window { position: absolute; z-index: 12; display: flex; flex-direction: column; overflow: hidden; border: 1px solid #40514e; border-radius: 12px; background: #10151bef; box-shadow: 0 14px 44px #0007; color: #e5ecea; }
+.detail-window[hidden] { display: none; }
+.detail-header { height: 39px; min-height: 39px; display: flex; align-items: center; gap: 10px; padding: 0 10px 0 14px; cursor: grab; touch-action: none; user-select: none; border-bottom: 1px solid #ffffff12; }
+.detail-header:active { cursor: grabbing; }
+.detail-title { font-size: 12px; font-weight: 600; flex: 1; }
+.detail-count { font: 10px monospace; color: #9aafa8; }
+.detail-toggle { width: 26px; height: 26px; border: 0; border-radius: 6px; background: #ffffff08; color: #b4f0d3; font-size: 20px; cursor: pointer; }
+.detail-toggle:hover { background: #ffffff18; }
+.detail-image-button { position: relative; display: block; flex: 1; width: 100%; min-height: 0; padding: 0; border: 0; background: #080c10; color: #dbe7e1; cursor: pointer; overflow: hidden; }
+.detail-image-button img { width: 100%; height: 100%; display: block; object-fit: contain; user-select: none; transform-origin: 0 0; will-change: transform; }
+.detail-image-button img[hidden] { display: none; }
+.detail-message { font-size: 12px; padding: 16px; }
+.detail-resize { position: absolute; right: 0; bottom: 0; width: 23px; height: 23px; padding: 0; border: 0; background: linear-gradient(135deg, transparent 45%, #a8c7ba 46%, #a8c7ba 50%, transparent 51%, transparent 62%, #a8c7ba 63%, #a8c7ba 67%, transparent 68%) center / 12px 12px no-repeat; cursor: nwse-resize; touch-action: none; }
+.detail-window.is-collapsed .detail-image-button, .detail-window.is-collapsed .detail-resize { display: none; }
+.detail-window button:focus-visible { outline: 2px solid #acf1cd; outline-offset: -3px; }
+
+.detail-image-button { touch-action: none; }
+.detail-image-button.is-zoomed { cursor: grab; }
+.detail-image-button.is-panning { cursor: grabbing; }
+
+.detail-dock { padding: 16px; flex-shrink: 0; margin-top: auto; }
+.detail-dock .detail-window { position: static; width: 100%; height: 40px; box-shadow: none; }
+.detail-dock .detail-header { cursor: default; border-bottom: 0; }

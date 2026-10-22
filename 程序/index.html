@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#10141b" />
+  <meta name="description" content="本地模型库与 3D 外观预览工作台" />
+  <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+  <title>3D 看外观</title>
+</head>
+<body>
+  <svg class="icon-defs" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs>
+    <symbol id="i-cube" viewBox="0 0 24 24"><path d="m12 3 9 5v8l-9 5-9-5V8Zm0 9 9-4M3 8l9 4v9m-4.5-15.5 9 5"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-library" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16m4-11h4m-4 5h4"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h5m4 0h7M4 17h10m4 0h2"/><circle cx="11" cy="7" r="2"/><circle cx="16" cy="17" r="2"/></symbol>
+    <symbol id="i-focus" viewBox="0 0 24 24"><path d="M9 4H4v5m11-5h5v5M4 15v5h5m11-5v5h-5"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="m9 6 10 6-10 6Z"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V3m-5 5 5-5 5 5M4 15v5h16v-5"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1"/><path d="m3 16 5-5 6 6 3-3 4 4"/></symbol>
+    <symbol id="i-reset" viewBox="0 0 24 24"><path d="M4 10a8 8 0 1 1 1 7M4 4v6h6"/></symbol>
+    <symbol id="i-fit" viewBox="0 0 24 24"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/><rect x="8" y="7" width="8" height="10" rx="1"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18m6-18v18M3 9h18M3 15h18"/></symbol>
+    <symbol id="i-axes" viewBox="0 0 24 24"><path d="M5 3v16h16M5 19 17 7M2 6l3-3 3 3m10 10 3 3-3 3"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></symbol>
+    <symbol id="i-laptop" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="12" rx="2"/><path d="m5 15-3 5h20l-3-5m-9 3h4"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7V4h7l3 3h8v13H3Z"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+  </defs></svg>
+  <div id="app" class="app-shell">
+    <header class="topbar">
+      <div class="brand-lockup"><span class="brand-mark"><svg class="icon"><use href="#i-cube"/></svg></span><span class="app-name">3D 看外观</span><span class="local-badge"><i></i>本地工作台</span></div>
+      <div class="topbar-actions">
+        <button id="toggle-library" class="button button-secondary drawer-trigger library-trigger" type="button" aria-label="打开模型库" aria-expanded="false" aria-controls="library-panel"><svg class="icon"><use href="#i-library"/></svg><span>模型库</span></button>
+        <button id="toggle-settings" class="button button-secondary drawer-trigger settings-trigger" type="button" aria-label="打开外观设置" aria-expanded="false" aria-controls="settings-panel"><svg class="icon"><use href="#i-settings"/></svg><span>设置</span></button>
+        <button id="record-button" class="button button-quiet record-button" type="button" title="录制浏览器窗口"><span class="record-dot"></span><em>录制窗口</em></button>
+        <button id="immersive-button" aria-label="沉浸演示" class="button button-secondary" type="button"><svg class="icon"><use href="#i-play"/></svg><span class="desktop-label">沉浸演示</span></button>
+        <button id="focus-button" aria-label="专注查看" class="button button-primary" type="button" aria-pressed="false" title="专注查看（F）"><svg class="icon"><use href="#i-focus"/></svg><span>专注查看</span></button>
+      </div>
+    </header>
+    <div class="workspace">
+      <aside id="library-panel" class="inspector-panel left-panel" aria-label="模型库">
+        <div class="panel-heading"><div><h2>模型库</h2><span id="library-count" class="subtle">正在读取…</span></div><div class="panel-heading-actions"><button id="manage-library" class="text-button" type="button" aria-pressed="false">管理</button><button class="icon-button drawer-close" data-close-drawer type="button" aria-label="关闭模型库"><svg class="icon"><use href="#i-close"/></svg></button></div></div>
+        <section class="source-section library-body">
+          <div class="library-actions"><span class="field-caption">品类</span><button id="add-category" class="text-button" type="button"><svg class="icon icon-small"><use href="#i-plus"/></svg>新增品类</button></div>
+          <div id="category-tabs" class="category-tabs" role="tablist" aria-label="设备品类"></div>
+          <div class="manage-category-actions"><span>管理当前品类</span><button id="delete-category" class="text-button danger-text" type="button" disabled>删除品类</button></div>
+          <label class="model-search"><svg class="icon"><use href="#i-search"/></svg><input id="library-search" type="search" aria-label="搜索当前品类模型" placeholder="搜索模型" autocomplete="off"/></label>
+          <div class="model-list-heading"><span id="category-model-count" class="field-caption">模型</span><span class="subtle">点击切换</span></div>
+          <div id="spu-options" class="spu-options" role="tabpanel"></div>
+        </section>
+        <div class="library-bottom">
+          <button id="add-model" class="button button-primary library-add-model" type="button" disabled><svg class="icon"><use href="#i-plus"/></svg>添加 GLB 模型</button>
+          <div id="drop-zone" class="drop-zone" tabindex="0" role="button" aria-label="拖入 GLB 文件或点击添加"><svg class="icon"><use href="#i-upload"/></svg><span>也可拖入 GLB 文件</span></div>
+          <p id="library-status" class="library-status" role="status">正在读取本地模型库…</p>
+          <details class="model-info"><summary>模型信息<svg class="icon icon-small"><use href="#i-chevron"/></svg></summary><div class="model-info-content">
+            <div class="source-meta"><span id="source-name">—</span><button id="reload-button" class="icon-button" type="button" title="重新加载当前模型" aria-label="重新加载模型"><svg class="icon"><use href="#i-reset"/></svg></button></div>
+            <div class="stat-grid"><div><span>网格</span><strong id="stat-meshes">—</strong></div><div><span>三角面</span><strong id="stat-triangles">—</strong></div><div><span>材质</span><strong id="stat-materials">—</strong></div><div><span>贴图</span><strong id="stat-textures">—</strong></div><div><span>节点</span><strong id="stat-nodes">—</strong></div><div><span>灯光</span><strong id="stat-lights">—</strong></div></div>
+            <div hidden><span id="model-badge"></span><span id="scene-label"></span><span id="meta-scene"></span><span id="meta-cameras"></span><span id="meta-punctual"></span><span id="meta-environment"></span></div>
+          </div></details>
+        </div>
+        <div hidden><button id="open-file-button" type="button">添加模型</button><input id="file-input" type="file" accept=".glb,model/gltf-binary"/><button id="expand-tree-button" type="button">收起</button><div id="scene-tree"></div></div>
+      </aside>
+      <main class="viewport-panel" aria-label="模型视图">
+        <div class="stage-heading"><div class="stage-title"><p id="model-category-label" class="field-caption">模型预览</p><h1 id="model-title">正在加载模型</h1></div><span class="render-status"><span id="source-type" class="status-dot"></span><span id="render-mode">实时预览</span></span></div>
+        <div class="stage-canvas">
+          <div id="viewport" class="viewport"></div>
+          <div class="viewport-overlay top-left-overlay"><div id="load-state" class="load-state" data-state="idle" role="status"><span class="load-spinner" aria-hidden="true"></span><span id="load-state-text">准备就绪</span></div></div>
+          <div id="canvas-empty" class="canvas-empty" hidden><svg class="icon"><use href="#i-cube"/></svg><strong>还没有模型</strong><span>在左侧新增品类，再添加 GLB 开始预览。</span><button id="empty-add-model" class="button button-primary" type="button">添加模型</button></div>
+          <div id="error-banner" class="error-banner" hidden><strong>未能完成操作</strong><span id="error-message"></span><button id="dismiss-error" type="button" aria-label="关闭提示"><svg class="icon"><use href="#i-close"/></svg></button></div>
+          <div class="gesture-hint">拖动旋转 <span>·</span> 滚轮缩放 <span>·</span> 右键平移</div>
+        </div>
+        <div class="stage-toolbar-wrap"><div class="viewport-toolbar" role="toolbar" aria-label="视图工具">
+          <button id="lid-toggle-button" class="toolbar-button lid-button" type="button" aria-label="合盖笔记本" hidden><svg class="icon"><use href="#i-laptop"/></svg><em>合盖</em></button>
+          <button id="reset-view-button" class="toolbar-button" type="button" title="恢复初始视角（R）"><svg class="icon"><use href="#i-reset"/></svg><em>重置视角</em></button>
+          <button id="frame-view-button" class="toolbar-button" type="button" title="让模型完整显示"><svg class="icon"><use href="#i-fit"/></svg><em>适配画面</em></button>
+          <span class="toolbar-divider"></span>
+          <button id="grid-button" class="toolbar-button" type="button" title="显示或隐藏地面网格"><svg class="icon"><use href="#i-grid"/></svg><em>网格</em></button>
+          <button id="axes-button" class="toolbar-button" type="button" title="显示或隐藏坐标轴"><svg class="icon"><use href="#i-axes"/></svg><em>坐标轴</em></button>
+        </div></div>
+      </main>
+      <aside id="settings-panel" class="inspector-panel right-panel" aria-label="外观设置">
+        <div class="panel-heading"><div><h2>外观设置</h2><span class="subtle">调整当前模型的预览效果</span></div><button class="icon-button drawer-close" data-close-drawer type="button" aria-label="关闭外观设置"><svg class="icon"><use href="#i-close"/></svg></button></div>
+        <div class="settings-tabs" role="tablist" aria-label="外观设置分组"><button id="tab-textures" class="settings-tab" type="button" role="tab" aria-selected="true" aria-controls="settings-textures"><svg class="icon"><use href="#i-image"/></svg>贴图</button><button id="tab-lighting" class="settings-tab" type="button" role="tab" aria-selected="false" aria-controls="lighting-section" tabindex="-1"><svg class="icon"><use href="#i-sun"/></svg>灯光</button></div>
+        <div class="settings-scroll">
+          <section id="settings-textures" class="panel-section material-header-section" role="tabpanel" aria-labelledby="tab-textures">
+            <div class="texture-current"><span class="texture-current-icon"><svg class="icon"><use href="#i-image"/></svg></span><div><span class="field-caption">当前材质来源</span><strong id="texture-source-label">模型原始贴图</strong></div><span id="texture-source-mark" class="texture-source-mark"><svg class="icon icon-small"><use href="#i-check"/></svg></span></div>
+            <p class="section-description">模型自带贴图会完整保留。导入其他图片可临时预览不同 SKU。</p>
+            <div class="batch-actions"><button id="batch-folder-button" class="button button-primary button-batch" type="button" disabled><svg class="icon"><use href="#i-folder"/></svg><span class="button-label">导入贴图文件夹</span></button><input id="batch-folder-input" class="visually-hidden" type="file" aria-label="选择贴图文件夹或图片" accept="image/png,image/jpeg,image/webp,image/avif" webkitdirectory="" directory="" multiple/><span id="batch-hint" class="batch-hint">选择当前机型对应的图片文件夹</span></div>
+            <div class="material-actions"><button id="reset-materials-button" class="text-button" type="button" disabled><svg class="icon icon-small"><use href="#i-reset"/></svg>恢复模型贴图</button><span id="material-count-label" class="subtle">—</span></div>
+            <div id="sku-panel" class="sku-panel" hidden aria-live="polite"><div class="sku-panel-head"><strong id="sku-panel-title">图片 SKU</strong><span id="sku-cache-label" hidden></span></div><label class="sku-select-row" for="sku-select"><span>当前 SKU</span><select id="sku-select" aria-label="选择图片 SKU" disabled><option value="">模型原始贴图</option></select></label><div id="sku-list" class="sku-list" role="list" aria-label="贴图 SKU 列表"></div><p id="sku-hint" class="sku-hint">切换 SKU 只影响当前预览。</p></div>
+            <details id="batch-summary" class="batch-summary" hidden><summary><strong id="batch-summary-title">导入结果</strong><svg class="icon icon-small"><use href="#i-chevron"/></svg></summary><span id="batch-summary-counts"></span><div id="batch-progress" class="batch-progress" role="progressbar" aria-label="批量替换进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" hidden><span></span></div><div id="batch-results" class="batch-results"></div></details>
+            <div class="session-note"><span class="note-dot"></span><p>图片仅用于本次预览<br><span>切换模型或刷新后恢复原始贴图。</span></p></div>
+          </section>
+          <section id="lighting-section" class="panel-section lighting-section" role="tabpanel" aria-labelledby="tab-lighting" hidden>
+            <div class="section-heading"><h3>辅助光照</h3><button id="reset-lighting-button" class="text-button" type="button">重置</button></div>
+            <p class="section-description">调整亮度与光线方向，查看边框、表面和细节。</p>
+            <div class="lighting-controls"><label class="lighting-control" for="environment-brightness-input"><span class="lighting-control-head"><strong>亮度</strong><output id="environment-brightness-value" for="environment-brightness-input">100%</output></span><input id="environment-brightness-input" type="range" min="0" max="200" step="1" value="100" aria-label="辅助灯光亮度"/><span class="range-endpoints"><span>暗</span><span>亮</span></span></label><label class="lighting-control" for="environment-angle-input"><span class="lighting-control-head"><strong>光线方向</strong><output id="environment-angle-value" for="environment-angle-input">0°</output></span><input id="environment-angle-input" type="range" min="-180" max="180" step="1" value="0" aria-label="辅助灯光水平角度"/><span class="range-endpoints"><span>−180°</span><span>180°</span></span></label></div>
+            <div class="light-switches"><button id="environment-button" class="setting-switch is-active" type="button"><span><strong>辅助环境光</strong><small>提供柔和的照明与反射</small></span><i class="switch-track"></i></button><button id="lights-button" class="setting-switch is-active" type="button"><span><strong>模型自带灯光</strong><small id="model-light-note">按模型提供的灯光设置</small></span><i class="switch-track"></i></button></div>
+          </section>
+          <section id="detail-dock" class="detail-dock" aria-label="已收起的细节图片" hidden></section>
+        </div>
+      </aside>
+    </div>
+    <footer class="statusbar"><div class="statusbar-left"><span id="footer-status-dot" class="status-dot is-online"></span><span id="footer-status">本地模型库 · 自动保存</span></div><div class="statusbar-right"><span id="footer-size">—</span><span class="footer-separator">·</span><span id="footer-fps">— FPS</span><span class="shortcut-hint">F 专注查看</span></div></footer>
+  </div>
+  <button id="drawer-backdrop" class="drawer-backdrop" type="button" aria-label="关闭侧栏" hidden></button>
+  <dialog id="library-dialog" aria-labelledby="library-dialog-title" aria-describedby="library-dialog-description"><form id="library-form"><span class="dialog-icon"><svg class="icon"><use href="#i-cube"/></svg></span><h2 id="library-dialog-title"></h2><p id="library-dialog-description"></p><label id="library-name-row" class="library-field">名称<input id="library-name" name="name" maxlength="80" autocomplete="off" required placeholder="输入名称"/></label><label id="library-file-row" class="library-field" hidden>模型文件<input id="library-file" type="file" accept=".glb,model/gltf-binary"/><span id="library-file-label"></span></label><p id="library-error" role="alert" hidden></p><div class="library-dialog-actions"><button id="library-cancel" class="button button-secondary" type="button">取消</button><button id="library-submit" class="button button-primary" type="submit">保存</button></div></form></dialog>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

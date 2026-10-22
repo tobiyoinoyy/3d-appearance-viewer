@@ -1,0 +1,23 @@
+[
+  {
+    "id": "iphone17pro",
+    "label": "iPhone 17 Pro",
+    "file": "SPU-iPhone17Pro.glb",
+    "bytes": 5284344,
+    "sha256": "e853cacbacb0ba1bfe7b14164012e05d4c86fa8815e4df3969552a7185128f14"
+  },
+  {
+    "id": "iphone17promax",
+    "label": "iPhone 17 Pro Max",
+    "file": "SPU-iPhone17ProMax.glb",
+    "bytes": 4910136,
+    "sha256": "b262427eb248691b9d4741c7d52cf0dbf2e9bfbe37a8f2de60dfae75f8d562ec"
+  },
+  {
+    "id": "macbooktest",
+    "label": "MacBookTest",
+    "file": "MacBookTest-开合动画.glb",
+    "bytes": 13306764,
+    "sha256": "f16e7ef6e71467fee5a36e06f51498a235bc9e63ccbe924819b53803e3078421"
+  }
+]

@@ -1,0 +1,29 @@
+[
+  {
+    "id": "iphone17pro",
+    "label": "iPhone 17 Pro",
+    "url": "/models/SPU-iPhone17Pro.glb",
+    "file": "SPU-iPhone17Pro.glb",
+    "bytes": 5284344,
+    "category": "phone",
+    "categoryLabel": "手机"
+  },
+  {
+    "id": "iphone17promax",
+    "label": "iPhone 17 Pro Max",
+    "url": "/models/SPU-iPhone17ProMax.glb?v=b262427eb248",
+    "file": "SPU-iPhone17ProMax.glb",
+    "bytes": 4910136,
+    "category": "phone",
+    "categoryLabel": "手机"
+  },
+  {
+    "id": "macbooktest",
+    "label": "MacBookTest",
+    "url": "/models/MacBookTest-开合动画.glb",
+    "file": "MacBookTest-开合动画.glb",
+    "bytes": 13306764,
+    "category": "laptop",
+    "categoryLabel": "笔记本"
+  }
+]
