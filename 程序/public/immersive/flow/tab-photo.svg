@@ -1,0 +1,12 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="39.3857" height="33.5382" viewBox="0 0 39.3857 33.5382" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Group 49">
+<g id="Group 48">
+<circle id="Ellipse 1" cx="19.4973" cy="17.3299" r="7.11538" stroke-width="3" stroke="white"/>
+<path id="Vector 8" d="M27.0418 23.6647L30.909 26.7113" stroke-width="3" stroke="white"/>
+</g>
+<mask id="stroke0_0_170" fill="white">
+<path d="M1.39509e-05 5.74353H8.61216L9.2392 4.88281e-05H30.1558L30.7595 5.74353H39.3717L39.3857 33.5382H0.0139976L1.39509e-05 5.74353Z"/>
+</mask>
+<path id="Rectangle 35" d="M1.39509e-05 5.74353L0.0139976 33.5382H39.3857L39.3717 5.74353H30.7595L30.1558 4.88281e-05H9.2392L8.61216 5.74353H1.39509e-05Z" stroke-width="6" stroke="white" mask="url(#stroke0_0_170)"/>
+</g>
+</svg>

@@ -40,12 +40,14 @@ for (const direction of [new THREE.Vector3(.3, .1, 1), new THREE.Vector3(-.4, -.
       gestures: { reset() {} }, select: {}, skuSelect: {}, previousAlpha: 1,
       renderLayer: { getBoundingClientRect: () => ({ width: 390, height: 844 }) },
       host,
-      phone: { classList: { toggle() {} } }, close: {},
+      phone: { dataset: { screen: 'detail' }, classList: { toggle() {} } }, close: {},
+      syncView() {}, applySampleTextures: () => [],
       rememberSize() {}, matchMedia: () => ({ matches: false }),
       performance: { now: () => context.time }, time: 0,
     });
     vm.runInContext(`let active = true, expanded = true, transition = null;
-      let frameOffset = .04, fitDistance = 1;
+      const inlineOffset = .235;
+      let frameOffset = .032, fitDistance = 1;
       ${functions}
       setExpanded(false);`, context);
     let previousDistance = .5;
@@ -59,7 +61,7 @@ for (const direction of [new THREE.Vector3(.3, .1, 1), new THREE.Vector3(-.4, -.
     }
     assert.ok(sizes.every(([w, h]) => w === 390 && h === 844), 'canvas stays full-screen during collapse');
     assert.equal(vm.runInContext('transition', context), null);
-    assert.ok(Math.abs(camera.view.offsetY / 844 - .246) < 1e-8);
+    assert.ok(Math.abs(camera.view.offsetY / 844 - .235) < 1e-8);
     assert.equal(context.controls.enabled, true);
   });
 }

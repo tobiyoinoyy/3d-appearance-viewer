@@ -1,11 +1,12 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { DemoGesture } from './immersive-gestures.js';
+import { demoScreens } from './immersive-screens.js';
 import './immersive-demo.css';
 
 // Imported models may face opposite directions. Read the actual back material
 // triangles instead of assuming +Z/-Z means the back for every GLB.
-function backDirection(root) {
+function backDirection(root, side = -.38) {
   const normal = new THREE.Vector3();
   const a = new THREE.Vector3(), b = new THREE.Vector3(), c = new THREE.Vector3();
   root.updateWorldMatrix(true, true);
@@ -32,7 +33,7 @@ function backDirection(root) {
   if (normal.lengthSq() < 1e-12) normal.set(0, 0, 1);
   normal.normalize();
   const right = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), normal);
-  return normal.addScaledVector(right, -.38).add(new THREE.Vector3(0, .12, 0));
+  return normal.addScaledVector(right, side).add(new THREE.Vector3(0, .12, 0));
 }
 
 export function createImmersiveDemo({ state, viewport, skuSelect, onSkuChange }) {
@@ -45,22 +46,25 @@ export function createImmersiveDemo({ state, viewport, skuSelect, onSkuChange })
       <select aria-label="演示 SKU"></select>
       <button type="button" class="demo-exit">返回工作台</button>
     </div>
-    <div class="demo-phone">
-      <img class="demo-background demo-background-inline" src="/immersive/product-background.png" alt="" draggable="false">
-      <div class="demo-bottom-shade" aria-hidden="true"></div>
-      <div class="demo-renderer"></div>
-      <button class="demo-back" type="button" aria-label="退出沉浸式演示" title="返回工作台"></button>
-      <div class="demo-model" role="button" tabindex="0" aria-label="旋转手机，点击或双指放大进入全屏" aria-expanded="false"></div>
-      <button class="demo-collapse" type="button" aria-label="关闭全屏，返回商品预览" title="关闭全屏" hidden></button>
-      <p class="demo-disclaimer">3D 效果为模拟展示，仅供参考，商品外观与成色请以实拍图为准。</p>
-    </div>`;
+    <div class="demo-phone" data-screen="list" data-tab="model">${demoScreens}</div>`;
   document.body.append(dialog);
   const app = document.querySelector('#app');
   const phone = dialog.querySelector('.demo-phone');
   const host = dialog.querySelector('.demo-model');
   const renderLayer = dialog.querySelector('.demo-renderer');
   const select = dialog.querySelector('select');
-  const close = dialog.querySelector('.demo-collapse');
+  const find = selector => phone.querySelector(selector);
+  const list = find('.demo-list');
+  const detail = find('.demo-detail');
+  const close = find('.demo-collapse');
+  const controlsBar = find('.demo-controls');
+  const hint = find('.demo-disclaimer');
+  const about = find('.demo-about');
+  const aboutClose = find('.demo-about-close');
+  const photoPanel = find('.demo-photos');
+  const xrayPanel = find('.demo-xray');
+  const tools = dialog.querySelector('.demo-tools');
+  const tabs = [...phone.querySelectorAll('.demo-tabs button')];
   const canvas = state.renderer.domElement;
   const gestures = new DemoGesture();
   const camera = new THREE.PerspectiveCamera(32, 1, .01, 1000);
@@ -68,7 +72,94 @@ export function createImmersiveDemo({ state, viewport, skuSelect, onSkuChange })
   let savedControlsEnabled = true, previousSize = new THREE.Vector2();
   let previousAlpha = 1, previousInert = false, fitDistance = 1;
   let transition = null;
-  let frameOffset = .246;
+  const inlineOffset = .235;
+  let frameOffset = inlineOffset;
+  let tab = 'model', aboutOpen = false, lastProduct;
+  let sampleMaterials, sampleLoading = false;
+
+  function syncView() {
+    const onList = phone.dataset.screen === 'list';
+    const onModel = tab === 'model';
+    list.hidden = !onList;
+    detail.inert = onList || expanded;
+    host.inert = onList || (expanded && !onModel) || aboutOpen;
+    controlsBar.inert = !expanded || aboutOpen;
+    hint.inert = !expanded || !onModel || aboutOpen;
+    about.inert = !aboutOpen;
+    tools.inert = aboutOpen;
+    photoPanel.inert = !expanded || tab !== 'photo';
+    xrayPanel.inert = !expanded || tab !== 'xray';
+    phone.dataset.tab = tab;
+    phone.classList.toggle('is-about-open', aboutOpen);
+    hint.setAttribute('aria-expanded', String(aboutOpen));
+    tabs.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.tab === tab)));
+  }
+
+  function setAbout(value) {
+    aboutOpen = value;
+    gestures.reset();
+    syncView();
+    (value ? aboutClose : hint).focus({ preventScroll: true });
+  }
+
+  function selectTab(value, focus = false) {
+    const fromAbout = aboutOpen;
+    aboutOpen = false;
+    tab = value;
+    gestures.reset();
+    syncView();
+    if (focus || fromAbout) tabs.find(button => button.dataset.tab === value).focus({ preventScroll: true });
+  }
+
+  function showList() {
+    phone.dataset.screen = 'list';
+    syncView();
+    (lastProduct || find('[data-product]')).focus({ preventScroll: true });
+  }
+
+  function showDetail(event) {
+    lastProduct = event.currentTarget;
+    phone.dataset.screen = 'detail';
+    syncView();
+    host.focus({ preventScroll: true });
+  }
+
+  function loadSampleTextures() {
+    if (sampleLoading || !usesDemoSample()) return;
+    sampleLoading = true;
+    const loader = new THREE.TextureLoader();
+    const faces = ['front', 'back', 'left', 'right', 'top', 'bottom'];
+    void Promise.all(faces.map(async face => {
+      const map = await loader.loadAsync(`/immersive/flow/texture/${face}.png`);
+      map.flipY = false;
+      map.colorSpace = THREE.SRGBColorSpace;
+      return [face, new THREE.MeshBasicMaterial({ map, toneMapped: false })];
+    })).then(materials => { sampleMaterials = new Map(materials); }).catch(error => {
+      sampleLoading = false;
+      console.warn('沉浸演示示例贴图加载失败', error);
+    });
+  }
+
+  function usesDemoSample() {
+    return state.modelUrl?.split('?')[0] === '/models/SPU-iPhone17ProMax--1d6c00029252.glb';
+  }
+
+  function applySampleTextures() {
+    // Only the matching untextured demonstration model uses the bundled sample.
+    if (!sampleMaterials || !usesDemoSample() || [...state.materialRecords.values()].some(record => record.material.map)) return [];
+    const swaps = [];
+    const matchFace = material => {
+      const name = material.name.toLowerCase().replace(/\.\d+$/, '');
+      return sampleMaterials.get(/^back(?:-camera|detal)$/.test(name) ? 'back' : name) || material;
+    };
+    state.modelRoot.traverse(mesh => {
+      if (!mesh.isMesh) return;
+      const original = mesh.material;
+      swaps.push([mesh, original]);
+      mesh.material = Array.isArray(original) ? original.map(matchFace) : matchFace(original);
+    });
+    return swaps;
+  }
 
   function syncSku() {
     if (select.innerHTML !== skuSelect.innerHTML) select.innerHTML = skuSelect.innerHTML;
@@ -97,7 +188,7 @@ export function createImmersiveDemo({ state, viewport, skuSelect, onSkuChange })
       for (const z of [box.min.z, box.max.z]) {
         const p = new THREE.Vector3(x, y, z).sub(center);
         const depth = p.dot(direction);
-        distance = Math.max(distance, Math.abs(p.dot(up)) / (tangent * (expanded ? .76 : .364 * .94)) + depth,
+        distance = Math.max(distance, Math.abs(p.dot(up)) / (tangent * (expanded ? .70 : .334)) + depth,
           Math.abs(p.dot(right)) / (tangent * camera.aspect * .90) + depth);
       }
     }
@@ -175,8 +266,9 @@ export function createImmersiveDemo({ state, viewport, skuSelect, onSkuChange })
     host.setAttribute('aria-expanded', String(value));
     host.setAttribute('aria-label', value ? '全屏手机，拖动旋转，双指或滚轮缩放' : '旋转手机，点击或双指放大进入全屏');
     close.hidden = !value;
+    syncView();
     controls.enableZoom = value;
-    frameOffset = value ? .04 : .246;
+    frameOffset = value ? .032 : inlineOffset;
     resize(false);
     // Keep the current orbit direction when closing. Returning to the saved
     // opposite view along a straight line can drive the camera through the mesh.
@@ -226,10 +318,35 @@ export function createImmersiveDemo({ state, viewport, skuSelect, onSkuChange })
   host.addEventListener('keydown', e => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpanded(true); }
   });
-  close.addEventListener('click', () => setExpanded(false));
-  dialog.querySelector('.demo-back').addEventListener('click', exit);
+  phone.querySelectorAll('[data-product]').forEach(button => button.addEventListener('click', showDetail));
+  phone.querySelectorAll('[data-open-tab]').forEach(button => button.addEventListener('click', () => {
+    selectTab(button.dataset.openTab);
+    setExpanded(true);
+    (tab === 'model' ? host : tabs.find(item => item.dataset.tab === tab)).focus({ preventScroll: true });
+  }));
+  tabs.forEach(button => button.addEventListener('click', () => selectTab(button.dataset.tab)));
+  close.addEventListener('click', collapse);
+  hint.addEventListener('click', () => setAbout(true));
+  aboutClose.addEventListener('click', () => setAbout(false));
+  find('.demo-info-scrim').addEventListener('click', () => setAbout(false));
+  find('.demo-about-photo').addEventListener('click', () => selectTab('photo'));
+  find('.demo-xray-link').addEventListener('click', () => selectTab('photo', true));
+  find('.demo-list-back').addEventListener('click', exit);
+  find('.demo-detail-back').addEventListener('click', showList);
   dialog.querySelector('.demo-exit').addEventListener('click', exit);
-  dialog.addEventListener('cancel', e => { e.preventDefault(); expanded ? setExpanded(false) : exit(); });
+  dialog.addEventListener('cancel', e => {
+    e.preventDefault();
+    if (aboutOpen) setAbout(false);
+    else if (expanded) collapse();
+    else if (phone.dataset.screen === 'detail') showList();
+    else exit();
+  });
+
+  function collapse() {
+    setExpanded(false);
+    selectTab('model');
+    host.focus({ preventScroll: true });
+  }
 
   function open() {
     if (active || !state.modelRoot) return;
@@ -241,13 +358,17 @@ export function createImmersiveDemo({ state, viewport, skuSelect, onSkuChange })
     app.inert = true;
     state.controls.enabled = false;
     active = true; expanded = false;
-    frameOffset = .246;
+    tab = 'model'; aboutOpen = false; lastProduct = null;
+    frameOffset = inlineOffset;
     transition = null;
     phone.classList.remove('is-expanded'); close.hidden = true;
     host.setAttribute('aria-expanded', 'false');
     host.setAttribute('aria-label', '旋转手机，点击或双指放大进入全屏');
     gestures.reset(); syncSku();
+    phone.dataset.screen = 'list';
+    syncView();
     dialog.showModal();
+    loadSampleTextures();
     renderLayer.append(canvas);
     controls = new OrbitControls(camera, host);
     controls.enableDamping = false;
@@ -256,11 +377,11 @@ export function createImmersiveDemo({ state, viewport, skuSelect, onSkuChange })
     controls.rotateSpeed = .65;
     controls.zoomSpeed = .8;
     controls.target.set(0, 0, 0);
-    camera.position.copy(backDirection(state.modelRoot));
+    camera.position.copy(backDirection(state.modelRoot, usesDemoSample() ? .44 : undefined));
     camera.lookAt(controls.target);
     model = state.modelRoot;
     resize(false); fit(); rememberSize();
-    host.focus({ preventScroll: true });
+    showList();
   }
   function exit() {
     if (!active) return;
@@ -283,6 +404,8 @@ export function createImmersiveDemo({ state, viewport, skuSelect, onSkuChange })
     animateTransition();
     if (model !== state.modelRoot) { model = state.modelRoot; fit(); }
     if (select.value !== skuSelect.value || select.disabled !== skuSelect.disabled) syncSku();
+    if (phone.dataset.screen === 'list') return;
+    const swaps = applySampleTextures();
     const background = state.scene.background;
     const helpers = [state.grid, state.axes].filter(Boolean).map(object => [object, object.visible]);
     try {
@@ -294,6 +417,7 @@ export function createImmersiveDemo({ state, viewport, skuSelect, onSkuChange })
       if (!transition) controls.update();
       state.renderer.render(state.scene, camera);
     } finally {
+      swaps.forEach(([mesh, material]) => { mesh.material = material; });
       state.scene.background = background;
       helpers.forEach(([object, visible]) => { object.visible = visible; });
       state.renderer.setClearAlpha(previousAlpha);
